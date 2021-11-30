@@ -19,11 +19,11 @@ pub fn client() -> Result<(), ErrorKind> {
     loop {
         s_buffer.clear();
         stdin.read_line(&mut s_buffer)?;
-        let line = s_buffer.replace(|x| x == '\n' || x == '\r', "");
-
-        socket.send(Packet::reliable_unordered(
+        let line = "0,".to_owned() + &s_buffer.replace(|x| x == '\n' || x == '\r', "");
+        socket.send(Packet::reliable_ordered(
             server,
             line.clone().into_bytes(),
+            Some(1)
         ))?;
 
         socket.manual_poll(Instant::now());

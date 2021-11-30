@@ -1,6 +1,5 @@
 use std::thread;
-use std::time::Instant;
-use std::{collections::HashMap, convert::TryInto};
+use std::collections::HashMap;
 
 use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 
@@ -19,7 +18,7 @@ pub fn server() -> Result<(), ErrorKind> {
     for id in snek_ids {
         let head: Coord = (5, 5);
         let body: Vec<Coord> = Vec::new();
-        sneks[id] = Snek {id, head, body, Direction::NORTH};
+        sneks.insert(id, Snek {id, head, body, Direction::NORTH});
     }
 
     loop {
@@ -27,19 +26,24 @@ pub fn server() -> Result<(), ErrorKind> {
             match event {
                 SocketEvent::Packet(packet) => {
                     let msg = packet.payload();
-                    if msg == Direction::NORTH {
-                        printn!("mae it");
+                    let msg = String::from_utf8_lossy(msg).split(",").collect();
+                    let id = msg[0];
+                    let direction = msg[1].to_uppercase();
+                    if direction == "W" {
+                        sneks[id].set_direction(Direction::NORTH);
+                        // snek[1] += 1;
+                    } else if direction == "S" {
+                        sneks[id].set_direction(Direction::SOUTH);
+                        // snek[1] -= 1;
+                    } else if direction == "A" {
+                        sneks[id].set_direction(Direction::WEST);
+                        // snek[0] -= 1;
+                    } else if direction == "D" {
+                        sneks[id].set_direction(Direction::EAST);
+                        // snek[0] += 1;
                     }
-                    // let msg = String::from_utf8_lossy(msg).to_uppercase();
-                    // if (msg == "W") {
-                    //     snek[1] += 1;
-                    // } else if (msg == "S") {
-                    //     snek[1] -= 1;
-                    // } else if (msg == "A") {
-                    //     snek[0] -= 1;
-                    // } else if (msg == "D") {
-                    //     snek[0] += 1;
-                    // }
+                    sneks[id].update();
+                    println!("{}", sneks[id].head);
                     // println!("{}, {}", snek[0], snek[1]);
                     sender.send(Packet::reliable_ordered(packet.addr(), "hi".as_bytes().to_vec(), Some(1)
                     )).expect("This should send");
