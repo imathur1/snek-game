@@ -25,9 +25,12 @@ fn window_conf() -> Conf {
 async fn main() {
     let mut game = Game::new(
         WINDOW_WIDTH,  WINDOW_HEIGHT,
-        15, 40, 30
+        20, 30, 20
     );
-    game.add_snek();
+    game.spawn_snek(0, true);
+    game.spawn_snek(1, false);
+    game.spawn_snek(2, false);
+    game.spawn_snek(3, false);
     loop {
         clear_background(BLACK);
 
