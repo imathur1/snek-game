@@ -9,21 +9,25 @@ pub fn server() -> Result<(), ErrorKind> {
     let mut socket = Socket::bind(SERVER)?;
     let (sender, receiver) = (socket.get_packet_sender(), socket.get_event_receiver());
     let _thread = thread::spawn(move || socket.start_polling());
+    let mut snek = vec![0, 0];
 
     loop {
         if let Ok(event) = receiver.recv() {
             match event {
                 SocketEvent::Packet(packet) => {
                     let msg = packet.payload();
-                    if msg == b"Bye!" {
-                        break;
+                    let msg = String::from_utf8_lossy(msg).to_uppercase();
+                    if (msg == "W") {
+                        snek[1] += 1;
+                    } else if (msg == "S") {
+                        snek[1] -= 1;
+                    } else if (msg == "A") {
+                        snek[0] -= 1;
+                    } else if (msg == "D") {
+                        snek[0] += 1;
                     }
-
-                    let msg = String::from_utf8_lossy(msg);
-                    let ip = packet.addr().ip();
-                    println!("Received {:?} from {:?}", msg, ip);
-
-                    sender.send(Packet::reliable_unordered(packet.addr(), "Copy that!".as_bytes().to_vec(),
+                    println!("{}, {}", snek[0], snek[1]);
+                    sender.send(Packet::reliable_ordered(packet.addr(), "hi".as_bytes().to_vec(), Some(1)
                     )).expect("This should send");
                 }
                 SocketEvent::Timeout(address) => {

@@ -11,7 +11,7 @@ pub fn client() -> Result<(), ErrorKind> {
     println!("Connected on {}", addr);
 
     let server = SERVER.parse().unwrap();
-    println!("Type a message and press Enter to send. Send `Bye!` to quit.");
+    println!("Direction: ");
 
     let stdin = stdin();
     let mut s_buffer = String::new();
@@ -27,10 +27,6 @@ pub fn client() -> Result<(), ErrorKind> {
         ))?;
 
         socket.manual_poll(Instant::now());
-
-        if line == "Bye!" {
-            break;
-        }
 
         match socket.recv() {
             Some(SocketEvent::Packet(packet)) => {
