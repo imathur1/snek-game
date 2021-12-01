@@ -20,9 +20,9 @@ pub struct Game {
     grid_x: i32,
     grid_y: i32,
     internal_grid: Vec<SnekId>,
-    snek_ids: Vec<SnekId>,
     sneks: HashMap<SnekId, Snek>,
     my_snek_id: SnekId,
+    current_snek_id: SnekId,
 
     last_time: f64
 }
@@ -34,17 +34,16 @@ impl Game {
         Game { 
             screen_width, screen_height, grid_size, grid_x_count, grid_y_count,
             grid_width: grid_size * grid_x_count, grid_height: grid_size * grid_y_count, grid_x: 50, grid_y: 50,
-            internal_grid: Vec::with_capacity((grid_x_count * grid_y_count).try_into().unwrap()),
-            snek_ids: Vec::new(),
+            internal_grid: vec![0; (grid_x_count * grid_y_count) as usize],
             sneks: HashMap::new(),
             my_snek_id: 0,
+            current_snek_id: 0,
             last_time: get_time()
         }
     }
 
     fn select_spawn(&self) -> Result<(Coord, Vec<Coord>, Direction), &str> {
-        println!("{}", self.snek_ids.len());
-        match self.snek_ids.len() {
+        match self.sneks.len() {
             0 => Ok((
                 (STARTING_LENGTH - 1, 0), 
                 (0..STARTING_LENGTH - 1).into_iter().rev().map(|x| (x, 0)).collect(),
@@ -69,32 +68,47 @@ impl Game {
         }
     }
 
-    pub fn spawn_snek(&mut self, id: SnekId, is_me: bool) {
-        if self.snek_ids.len() >= MAX_PLAYERS {
-            return;
+    pub fn spawn_snek(&mut self, is_me: bool) -> Result<SnekId, &str> {
+        if self.sneks.len() >= MAX_PLAYERS {
+            return Err("Exceeded player count!");
         }
+        self.current_snek_id += 1;
+        let id = self.current_snek_id;
+
         let (head, body, direction) = self.select_spawn().unwrap();
-        self.sneks.insert(id, Snek { id, head, body, direction });
-        self.snek_ids.push(id);
+        Game::set_snek_at(head.0, head.1, id, self.grid_x_count, &mut self.internal_grid);
+        for coord in &body {
+            Game::set_snek_at(coord.0, coord.1, id, self.grid_x_count, &mut self.internal_grid);
+        }
+        self.sneks.insert(id, Snek { id, head, body, direction, has_changed_direction: false });
+
         if is_me {
             self.my_snek_id = id;
         }
+        Ok(id)
     }
 
     pub fn update(&mut self) {
+        // Read input
+        self.handle_events();
+
         // Update sneks
-        let time_passed: bool = (get_time() - self.last_time) >= 0.2;
+        let time_passed: bool = (get_time() - self.last_time) >= 0.15;
         if time_passed {
-            self.last_time = get_time();
-        }
-
-        for id in &self.snek_ids {
-            let snek = &mut *self.sneks.get_mut(id).unwrap();
-
-            if time_passed {
-                snek.update();
+            let mut dead: Vec<SnekId> = Vec::new();
+            for (id, snek) in self.sneks.iter_mut() {
+                if !Game::update_snek(snek, &mut self.internal_grid, self.grid_x_count, self.grid_y_count) {
+                    dead.push(*id);
+                }
+            }
+            for id in dead {
+                Game::remove_snek(id, &mut self.sneks, &mut self.internal_grid, self.grid_x_count);
             }
 
+            self.last_time = get_time();
+        }
+        
+        for (_, snek) in self.sneks.iter() {
             draw_rectangle((self.grid_x + snek.head.0 * self.grid_size) as f32, 
                 (self.grid_y + snek.head.1 * self.grid_size) as f32, self.grid_size as f32, self.grid_size as f32, YELLOW);
             draw_rectangle_lines((self.grid_x + snek.head.0 * self.grid_size) as f32, 
@@ -123,19 +137,69 @@ impl Game {
     }
 
     pub fn handle_events(&mut self) {
-        if is_key_pressed(KeyCode::Up) {
-            self.sneks.get_mut(&self.my_snek_id).unwrap().set_direction(Direction::NORTH);
-        } else if is_key_pressed(KeyCode::Down) {
-            self.sneks.get_mut(&self.my_snek_id).unwrap().set_direction(Direction::SOUTH);
-        } else if is_key_pressed(KeyCode::Right) {
-            self.sneks.get_mut(&self.my_snek_id).unwrap().set_direction(Direction::EAST);
-        } else if is_key_pressed(KeyCode::Left) {
-            self.sneks.get_mut(&self.my_snek_id).unwrap().set_direction(Direction::WEST);
-        }
+        if let Some(snek) = self.sneks.get_mut(&self.my_snek_id) {
+            if !snek.has_changed_direction {
+                if is_key_pressed(KeyCode::Up) {
+                    snek.has_changed_direction = true;
+                    snek.set_direction(Direction::NORTH);
+                } else if is_key_pressed(KeyCode::Down) {
+                    snek.has_changed_direction = true;
+                    snek.set_direction(Direction::SOUTH);
+                } else if is_key_pressed(KeyCode::Right) {
+                    snek.has_changed_direction = true;
+                    snek.set_direction(Direction::EAST);
+                } else if is_key_pressed(KeyCode::Left) {
+                    snek.has_changed_direction = true;
+                    snek.set_direction(Direction::WEST);
+                }
+            }
+    }
     }
 
-    fn check_collisions() {
+    fn update_snek(snek: &mut Snek, grid: &mut Vec<SnekId>, width: i32, height: i32) -> bool {
+        snek.has_changed_direction = false;
 
+        let new_head = snek.get_new_head_coord();
+        if new_head.0 < 0 || new_head.0 >= width || new_head.1 < 0 || new_head.1 >= height {
+            println!("Border");
+            return false;
+        }
+        let head_index = Game::get_1d_index(new_head.0, new_head.1, width);
+        let snek_id = snek.id;
+        match grid[head_index] {
+            0 => {},
+            id => {
+                if id == snek_id {
+                    println!("Self collision");
+                } else {
+                    println!("Head to head");
+                }
+                return false;
+            }
+        }
+        // Update the internal grid
+        // Add head
+        grid[head_index] = snek_id;
+
+        // Remove old tail
+        let tail = snek.body.last().unwrap();
+        let tail_index = Game::get_1d_index(tail.0, tail.1, width);
+        grid[tail_index] = 0;
+
+        // Advance the snek itself
+        snek.advance();
+
+        return true;
+    }
+
+    fn remove_snek(id: SnekId, sneks: &mut HashMap<SnekId, Snek>, grid: &mut Vec<SnekId>, width: i32) {
+        let snek = sneks.remove(&id).unwrap();
+        let index = Game::get_1d_index(snek.head.0, snek.head.1, width);
+        grid[index] = 0;
+        for coord in snek.body {
+            let index = Game::get_1d_index(coord.0, coord.1, width);
+            grid[index] = 0;
+        }
     }
 
     fn offset_x(&self, x: i32) -> i32 {
@@ -146,11 +210,15 @@ impl Game {
         self.grid_y + y
     }
 
-    fn get_snek_at(&self, x: i32, y: i32) -> SnekId {
-        self.internal_grid[(x + y * self.grid_x_count) as usize]
+    fn get_1d_index(x: i32, y: i32, width: i32) -> usize {
+        (x + y * width) as usize
     }
 
-    fn set_snek_at(&mut self, x: i32, y: i32, id: SnekId) {
-        self.internal_grid[(x + y * self.grid_x_count) as usize] = id;
+    fn get_snek_at(x: i32, y: i32, width: i32, grid: &Vec<SnekId>) -> SnekId {
+        grid[Game::get_1d_index(x, y, width)]
+    }
+
+    fn set_snek_at(x: i32, y: i32, id: SnekId, width: i32, grid: &mut Vec<SnekId>) {
+        grid[Game::get_1d_index(x, y, width)] = id;
     }
 }

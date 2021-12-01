@@ -27,14 +27,13 @@ async fn main() {
         WINDOW_WIDTH,  WINDOW_HEIGHT,
         20, 30, 20
     );
-    game.spawn_snek(0, true);
-    game.spawn_snek(1, false);
-    game.spawn_snek(2, false);
-    game.spawn_snek(3, false);
+    game.spawn_snek(true);
+    game.spawn_snek(false);
+    game.spawn_snek(false);
+    game.spawn_snek(false);
     loop {
         clear_background(BLACK);
 
-        game.handle_events();
         game.update();
 
         next_frame().await
