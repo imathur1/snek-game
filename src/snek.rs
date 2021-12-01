@@ -12,26 +12,28 @@ impl Snek {
 
     pub fn get_new_head_coord(&self) -> Coord {
         match self.direction {
-            Direction::NORTH => (self.head.0, self.head.1 - 1),
-            Direction::SOUTH => (self.head.0, self.head.1 + 1),
-            Direction::EAST => (self.head.0 + 1, self.head.1),
-            Direction::WEST => (self.head.0 - 1, self.head.1),
+            Direction::North => (self.head.0, self.head.1 - 1),
+            Direction::South => (self.head.0, self.head.1 + 1),
+            Direction::East => (self.head.0 + 1, self.head.1),
+            Direction::West => (self.head.0 - 1, self.head.1),
         }
     }
 
     pub fn set_direction(&mut self, direction: Direction) {
         // Prohibit moving in the opposite direction
         match direction {
-            Direction::NORTH => if self.direction == Direction::SOUTH { return; },
-            Direction::SOUTH => if self.direction == Direction::NORTH { return; },
-            Direction::EAST => if self.direction == Direction::WEST { return; },
-            Direction::WEST => if self.direction == Direction::EAST { return; }
+            Direction::North => if self.direction == Direction::South { return; },
+            Direction::South => if self.direction == Direction::North { return; },
+            Direction::East => if self.direction == Direction::West { return; },
+            Direction::West => if self.direction == Direction::East { return; }
         };
         self.direction = direction;
     }
     
-    pub fn advance(&mut self) {
-        self.body.pop();
+    pub fn advance(&mut self, should_grow: bool) {
+        if !should_grow {
+            self.body.pop();
+        }
         self.body.insert(0, self.head);
         self.head = self.get_new_head_coord();
     }

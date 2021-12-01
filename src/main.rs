@@ -29,8 +29,8 @@ async fn main() {
     );
     game.spawn_snek(true);
     game.spawn_snek(false);
-    game.spawn_snek(false);
-    game.spawn_snek(false);
+    // game.spawn_snek(false);
+    // game.spawn_snek(false);
     loop {
         clear_background(BLACK);
 

@@ -3,10 +3,10 @@ use std::{collections::HashMap, convert::TryInto};
 
 use macroquad::prelude::*;
 use crate::snek::Snek;
-use crate::shared::{Coord, Direction, SnekId};
+use crate::shared::{Coord, Direction, SnekId, UpdateResult};
 
 const MAX_PLAYERS: usize = 4;
-const STARTING_LENGTH: i32 = 5;
+const STARTING_LENGTH: i32 = 10;
 
 pub struct Game {
     pub screen_width: i32,
@@ -47,22 +47,22 @@ impl Game {
             0 => Ok((
                 (STARTING_LENGTH - 1, 0), 
                 (0..STARTING_LENGTH - 1).into_iter().rev().map(|x| (x, 0)).collect(),
-                Direction::EAST
+                Direction::East
             )),
             1 => Ok((
                 (STARTING_LENGTH - 1, self.grid_y_count - 1), 
                 (0..STARTING_LENGTH - 1).into_iter().rev().map(|x| (x, self.grid_y_count - 1)).collect(),
-                Direction::EAST
+                Direction::East
             )),
             2 => Ok((
                 (self.grid_x_count - STARTING_LENGTH, 0), 
                 (self.grid_x_count - STARTING_LENGTH + 1..self.grid_x_count).into_iter().map(|x| (x, 0)).collect(),
-                Direction::WEST
+                Direction::West
             )),
             3 => Ok((
                 (self.grid_x_count - STARTING_LENGTH, self.grid_y_count - 1), 
                 (self.grid_x_count - STARTING_LENGTH + 1..self.grid_x_count).into_iter().map(|x| (x, self.grid_y_count - 1)).collect(),
-                Direction::WEST
+                Direction::West
             )),
             _ => Err("Exceeded player count!")
         }
@@ -97,8 +97,16 @@ impl Game {
         if time_passed {
             let mut dead: Vec<SnekId> = Vec::new();
             for (id, snek) in self.sneks.iter_mut() {
-                if !Game::update_snek(snek, &mut self.internal_grid, self.grid_x_count, self.grid_y_count) {
-                    dead.push(*id);
+                let result = Game::update_snek(snek, &mut self.internal_grid, self.grid_x_count, self.grid_y_count);
+                match result {
+                    UpdateResult::WallCollision => {
+                        dead.push(*id);
+                    },
+                    UpdateResult::PlayerCollision(snek_id) => {
+                        dead.push(*id);
+                        println!("Killed by snek ID {}", snek_id);
+                    },
+                    _ => {}
                 }
             }
             for id in dead {
@@ -141,44 +149,59 @@ impl Game {
             if !snek.has_changed_direction {
                 if is_key_pressed(KeyCode::Up) {
                     snek.has_changed_direction = true;
-                    snek.set_direction(Direction::NORTH);
+                    snek.set_direction(Direction::North);
                 } else if is_key_pressed(KeyCode::Down) {
                     snek.has_changed_direction = true;
-                    snek.set_direction(Direction::SOUTH);
+                    snek.set_direction(Direction::South);
                 } else if is_key_pressed(KeyCode::Right) {
                     snek.has_changed_direction = true;
-                    snek.set_direction(Direction::EAST);
+                    snek.set_direction(Direction::East);
                 } else if is_key_pressed(KeyCode::Left) {
                     snek.has_changed_direction = true;
-                    snek.set_direction(Direction::WEST);
+                    snek.set_direction(Direction::West);
                 }
             }
-    }
+        }
+        // if let Some(snek) = self.sneks.get_mut(&2) {
+        //     if !snek.has_changed_direction {
+        //         if is_key_pressed(KeyCode::W) {
+        //             snek.has_changed_direction = true;
+        //             snek.set_direction(Direction::North);
+        //         } else if is_key_pressed(KeyCode::S) {
+        //             snek.has_changed_direction = true;
+        //             snek.set_direction(Direction::South);
+        //         } else if is_key_pressed(KeyCode::D) {
+        //             snek.has_changed_direction = true;
+        //             snek.set_direction(Direction::East);
+        //         } else if is_key_pressed(KeyCode::A) {
+        //             snek.has_changed_direction = true;
+        //             snek.set_direction(Direction::West);
+        //         }
+        //     }
+        // }
     }
 
-    fn update_snek(snek: &mut Snek, grid: &mut Vec<SnekId>, width: i32, height: i32) -> bool {
+    fn update_snek(snek: &mut Snek, grid: &mut Vec<SnekId>, width: i32, height: i32) -> UpdateResult {
         snek.has_changed_direction = false;
 
         let new_head = snek.get_new_head_coord();
         if new_head.0 < 0 || new_head.0 >= width || new_head.1 < 0 || new_head.1 >= height {
-            println!("Border");
-            return false;
+            return UpdateResult::WallCollision;
         }
-        let head_index = Game::get_1d_index(new_head.0, new_head.1, width);
         let snek_id = snek.id;
-        match grid[head_index] {
+        match Game::get_snek_at(new_head.0, new_head.1, width, grid) {
             0 => {},
             id => {
                 if id == snek_id {
-                    println!("Self collision");
+                    return UpdateResult::WallCollision;
                 } else {
-                    println!("Head to head");
+                    return UpdateResult::PlayerCollision(id);
                 }
-                return false;
             }
         }
         // Update the internal grid
         // Add head
+        let head_index = Game::get_1d_index(new_head.0, new_head.1, width);
         grid[head_index] = snek_id;
 
         // Remove old tail
@@ -187,9 +210,9 @@ impl Game {
         grid[tail_index] = 0;
 
         // Advance the snek itself
-        snek.advance();
+        snek.advance(false);
 
-        return true;
+        return UpdateResult::Nothing;
     }
 
     fn remove_snek(id: SnekId, sneks: &mut HashMap<SnekId, Snek>, grid: &mut Vec<SnekId>, width: i32) {
