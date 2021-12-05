@@ -3,6 +3,8 @@ use laminar::{ErrorKind};
 
 mod server;
 mod client;
+mod shared;
+mod snek;
 
 fn main() -> Result<(), ErrorKind> {
     let stdin = stdin();
