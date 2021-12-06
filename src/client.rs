@@ -9,8 +9,8 @@ use macroquad::prelude::{next_frame, clear_background, Conf, BLACK, get_time};
 use crate::game::Game;
 use crate::shared::{Coord, Direction, SnekId};
 
-const WINDOW_WIDTH: i32 = 1200;
-const WINDOW_HEIGHT: i32 = 900;
+const WINDOW_WIDTH: i32 = 800;
+const WINDOW_HEIGHT: i32 = 800;
 
 const SERVER: &str = "192.168.1.3:12351"; // "127.0.0.1:12351";
 
@@ -50,7 +50,7 @@ async fn main() -> Result<(), ErrorKind> {
     let mut game_start = false;
     let mut game = Game::new(
         WINDOW_WIDTH,  WINDOW_HEIGHT,
-        20, 45, 40
+        20, 35, 35
     );
 
     loop {
@@ -88,7 +88,7 @@ async fn main() -> Result<(), ErrorKind> {
                             socket.send(Packet::reliable_ordered(
                                 server,
                                 "D".as_bytes().to_vec(),
-                                Some(7),
+                                Some(5),
                             ));
                         }
 
@@ -114,7 +114,7 @@ async fn main() -> Result<(), ErrorKind> {
                             game.update(&mut socket, &server);
 
                             // If a snek is dead, determine who won
-                            if (game.sneks.len() == 1) {
+                            if game.sneks.len() == 1 {
                                 for (id, snek) in game.sneks.iter() {
                                     if (id.to_string() == snek_id) {
                                         println!("You win!");
@@ -122,6 +122,9 @@ async fn main() -> Result<(), ErrorKind> {
                                         println!("You lose!");
                                     }
                                 }
+                                break;
+                            } else if game.sneks.len() == 0 {
+                                println!("Tie game!");
                                 break;
                             }
                             next_frame().await

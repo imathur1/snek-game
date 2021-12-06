@@ -42,7 +42,7 @@ pub fn server() -> Result<(), ErrorKind> {
                         }
                     } else if msg == "heartbeat" {
                         // Send a heartbeat back to the client to prevent timing out
-                        sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(4)));
+                        sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(0)));
                     } else {
                         // Receive moves from both clients. Once both are received send
                         // them to the clients so they can update their game state simultaneously
@@ -54,7 +54,7 @@ pub fn server() -> Result<(), ErrorKind> {
                             for (addr, snek_move) in moves.iter() {
                                 for (o_addr, _) in moves.iter() {
                                     if addr != o_addr {
-                                        sender.send(Packet::reliable_ordered(*o_addr, snek_move.as_bytes().to_vec(), Some(3)));
+                                        sender.send(Packet::reliable_ordered(*o_addr, snek_move.as_bytes().to_vec(), Some(4)));
                                     }
                                 }
                             }
@@ -63,7 +63,7 @@ pub fn server() -> Result<(), ErrorKind> {
                         } else {
                             // Only one move has been received, send heartbeat to prevent timing out
                             // and to wait for the second move
-                            sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(4)));
+                            sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(0)));
                         }
                     }
                 }

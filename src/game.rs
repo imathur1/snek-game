@@ -46,19 +46,14 @@ impl Game {
     fn select_spawn(&self) -> Result<(Coord, Vec<Coord>, Direction), &str> {
         match self.sneks.len() {
             0 => Ok((
-                (STARTING_LENGTH - 1, 0), 
-                (0..STARTING_LENGTH - 1).into_iter().rev().map(|x| (x, 0)).collect(),
+                (STARTING_LENGTH - 1, 5), 
+                (0..STARTING_LENGTH - 1).into_iter().rev().map(|x| (x, 5)).collect(),
                 Direction::East
             )),
             1 => Ok((
-                (STARTING_LENGTH - 1, self.grid_y_count - 1), 
-                (0..STARTING_LENGTH - 1).into_iter().rev().map(|x| (x, self.grid_y_count - 1)).collect(),
+                (STARTING_LENGTH - 1, self.grid_y_count - 6), 
+                (0..STARTING_LENGTH - 1).into_iter().rev().map(|x| (x, self.grid_y_count - 6)).collect(),
                 Direction::East
-            )),
-            2 => Ok((
-                (self.grid_x_count - STARTING_LENGTH, 0), 
-                (self.grid_x_count - STARTING_LENGTH + 1..self.grid_x_count).into_iter().map(|x| (x, 0)).collect(),
-                Direction::West
             )),
             _ => Err("Exceeded player count!")
         }
@@ -152,7 +147,7 @@ impl Game {
             socket.send(Packet::reliable_ordered(
                 *server,
                 snek_move.as_bytes().to_vec(),
-                Some(7),
+                Some(5),
             ));
         } 
     }
