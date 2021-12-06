@@ -6,7 +6,7 @@ use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 use crate::snek::Snek;
 use crate::shared::{Coord, Direction, SnekId};
 
-const SERVER: &str = "127.0.0.1:12351";
+const SERVER: &str = "192.168.1.3:12351"; // "127.0.0.1:12351";
 
 pub fn server() -> Result<(), ErrorKind> {
     let mut socket = Socket::bind(SERVER)?;
@@ -14,8 +14,9 @@ pub fn server() -> Result<(), ErrorKind> {
     let _thread = thread::spawn(move || socket.start_polling());
 
     let mut snek_ids: Vec<SnekId> = Vec::new();
-    let mut addresses = HashSet::new();
+    let mut addresses: HashMap<std::net::SocketAddr, SnekId> = HashMap::new();
     let mut sneks: HashMap<SnekId, Snek> = HashMap::new();
+    let mut moves: HashMap<std::net::SocketAddr, String> = HashMap::new();
     let mut game_start = false;
 
     loop {
@@ -29,25 +30,31 @@ pub fn server() -> Result<(), ErrorKind> {
                         if snek_ids.len() == 2 { continue }
                         let id: u8 = join_game(&mut snek_ids, &mut sneks);
                         println!("sending id {} back to client", id);
-                        addresses.insert(packet.addr());
+                        addresses.insert(packet.addr(), id);
                         sender.send(Packet::reliable_ordered(packet.addr(), id.to_string().as_bytes().to_vec(), Some(2)));
                         if snek_ids.len() == 2 {
                             game_start = true;
                             println!("Game Started");
-                            for addr in addresses.iter() {
+                            for (addr, _) in addresses.iter() {
                                 sender.send(Packet::reliable_ordered(*addr, "start".as_bytes().to_vec(), Some(3)));
                             }
                         }
                     } else if msg == "heartbeat" {
-                        // println!("sending heartbeat");
                         sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(4)));
                     } else {
-                        println!("Received message {}", msg);
-                        // update_game(&msg, &mut snek_ids, &mut sneks);
-                        for addr in addresses.iter() {
-                            if *addr != packet.addr() {
-                                sender.send(Packet::reliable_ordered(*addr, msg.as_bytes().to_vec(), Some(3)));
+                        // println!("Received message {}", msg);
+                        moves.insert(packet.addr(), msg.to_string());
+                        if moves.len() == 2 {
+                            for (addr, snek_move) in moves.iter() {
+                                for (o_addr, _) in moves.iter() {
+                                    if addr != o_addr {
+                                        sender.send(Packet::reliable_ordered(*o_addr, snek_move.as_bytes().to_vec(), Some(3)));
+                                    }
+                                }
                             }
+                            moves = HashMap::new();
+                        } else {
+                            sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(4)));
                         }
                     }
                 }

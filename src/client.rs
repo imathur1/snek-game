@@ -9,10 +9,10 @@ use macroquad::prelude::{next_frame, clear_background, Conf, BLACK, get_time};
 use crate::game::Game;
 use crate::shared::{Coord, Direction, SnekId};
 
-const WINDOW_WIDTH: i32 = 800;
-const WINDOW_HEIGHT: i32 = 600;
+const WINDOW_WIDTH: i32 = 1200; // 800;
+const WINDOW_HEIGHT: i32 = 900; // 600;
 
-const SERVER: &str = "127.0.0.1:12351";
+const SERVER: &str = "192.168.1.3:12351"; // "127.0.0.1:12351";
 
 pub fn client() -> Result<(), ErrorKind> {
     main();
@@ -31,7 +31,7 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() -> Result<(), ErrorKind> {
-    let addresses = vec!["127.0.0.1:12352", "127.0.0.1:12353", "127.0.0.1:12354",  "127.0.0.1:12355"];
+    let addresses = vec!["192.168.1.3:12352", "192.168.1.3:12353", "192.168.1.3:12354", "192.168.1.3:12355", "192.168.1.3:12356"]; // vec!["127.0.0.1:12352", "127.0.0.1:12353", "127.0.0.1:12354",  "127.0.0.1:12356", "127.0.0.1:12357", "127.0.0.1:12358"];
     let mut rng = rand::thread_rng();
     let addr = addresses.choose(&mut rng).unwrap();
 
@@ -43,12 +43,12 @@ async fn main() -> Result<(), ErrorKind> {
     socket.manual_poll(Instant::now());
 
     let one_sec = time::Duration::from_millis(1000);
-    let buffer = time::Duration::from_millis(500);
+    let buffer = time::Duration::from_millis(100);
     let mut snek_id = String::from("-1");
     let mut game_start = false;
     let mut game = Game::new(
         WINDOW_WIDTH,  WINDOW_HEIGHT,
-        20, 30, 20
+        20, 45, 40
     );
 
     loop {
@@ -77,18 +77,14 @@ async fn main() -> Result<(), ErrorKind> {
                                 game.spawn_snek(false);
                                 game.spawn_snek(true);
                             }
+
+                            socket.send(Packet::reliable_ordered(
+                                server,
+                                "D".as_bytes().to_vec(),
+                                Some(7),
+                            ));
                         }
-                        if data.len() != 1 && &data[..4] == "dead" {
-                            let msg_vec: Vec<&str> = data.split(",").collect();
-                            let dead_id: String = msg_vec[1].parse().unwrap();
-                            if snek_id == dead_id {
-                                println!("You lose!");
-                            } else {
-                                println!("You win!");
-                            }
-                            break;
-                        }
-                        if game_start && data != "heartbeat" {
+                        if game_start && data != "heartbeat" && data != "start" {
                             for (id, snek) in game.sneks.iter_mut() { 
                                 if id.to_string() != snek_id {
                                     if data == "W" {
@@ -104,6 +100,7 @@ async fn main() -> Result<(), ErrorKind> {
                             }
                             clear_background(BLACK);
                             println!("{}, {}, {}", game.sneks[&1].head.0, game.sneks[&1].head.1, get_time());
+                            println!("{}, {}, {}", game.sneks[&2].head.0, game.sneks[&2].head.1, get_time());
                             game.update(&mut socket, &server);
                             if (game.sneks.len() == 1) {
                                 for (id, snek) in game.sneks.iter() {
@@ -113,7 +110,7 @@ async fn main() -> Result<(), ErrorKind> {
                                         println!("You lose!");
                                     }
                                 }
-                                // break;
+                                break;
                             }
                             next_frame().await
                         }

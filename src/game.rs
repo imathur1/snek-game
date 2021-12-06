@@ -85,27 +85,6 @@ impl Game {
     }
 
     pub fn update(&mut self, socket: &mut Socket, server: &std::net::SocketAddr) {
-        // Read input
-        self.handle_events();  
-        
-        if let Some(snek) = self.sneks.get_mut(&self.my_snek_id) {
-            let mut snek_move = String::new();
-            if (snek.direction == Direction::North) {
-                snek_move = String::from("W");
-            } else if (snek.direction == Direction::South) {
-                snek_move = String::from("S");
-            } else if (snek.direction == Direction::West) {
-                snek_move = String::from("A");
-            } else {
-                snek_move = String::from("D");
-            }
-            socket.send(Packet::reliable_ordered(
-                *server,
-                snek_move.as_bytes().to_vec(),
-                Some(7),
-            ));
-        } 
-
         // Update sneks
         let time_passed: bool = (get_time() - self.last_time) >= 0.15;
         if time_passed {
@@ -115,23 +94,9 @@ impl Game {
                 match result {
                     UpdateResult::WallCollision => {
                         dead.push(*id);
-                        println!("Killed by wall");
-                        // let msg = String::from("dead,") + &id.to_string();
-                        // socket.send(Packet::reliable_ordered(
-                        //     *server,
-                        //     msg.as_bytes().to_vec(),
-                        //     Some(8),
-                        // ));
                     },
                     UpdateResult::PlayerCollision(snek_id) => {
                         dead.push(*id);
-                        println!("Killed by snek ID {}", snek_id);
-                        // let msg = String::from("dead,") + &id.to_string();
-                        // socket.send(Packet::reliable_ordered(
-                        //     *server,
-                        //     msg.as_bytes().to_vec(),
-                        //     Some(8),
-                        // ));
                     },
                     _ => {}
                 }
@@ -169,6 +134,27 @@ impl Game {
         //     let x = self.offset_x(col * self.grid_size) as f32;
         //     draw_line(x, self.offset_y(0) as f32, x, self.offset_y(self.grid_height) as f32, 1.5, GREEN);
         // }
+
+        // Read input
+        self.handle_events();  
+
+        if let Some(snek) = self.sneks.get_mut(&self.my_snek_id) {
+            let mut snek_move = String::new();
+            if (snek.direction == Direction::North) {
+                snek_move = String::from("W");
+            } else if (snek.direction == Direction::South) {
+                snek_move = String::from("S");
+            } else if (snek.direction == Direction::West) {
+                snek_move = String::from("A");
+            } else {
+                snek_move = String::from("D");
+            }
+            socket.send(Packet::reliable_ordered(
+                *server,
+                snek_move.as_bytes().to_vec(),
+                Some(7),
+            ));
+        } 
     }
 
     pub fn handle_events(&mut self) {
