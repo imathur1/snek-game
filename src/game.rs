@@ -6,7 +6,7 @@ use macroquad::prelude::*;
 use crate::snek::Snek;
 use crate::shared::{Coord, Direction, SnekId, UpdateResult};
 
-const MAX_PLAYERS: usize = 4;
+const MAX_PLAYERS: usize = 2;
 const STARTING_LENGTH: i32 = 10;
 
 pub struct Game {

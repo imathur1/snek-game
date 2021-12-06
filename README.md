@@ -17,28 +17,28 @@ Louis Asanaka, asanaka2
 
 ### System Overview
 - Graphics
-    - Create a basic UI with a grid and scoreboard showing the state of the game (snek positions, scores, sneks alive). The UI will be using 
+    - Create a basic UI with a grid showing the state of the game (snek positions, head, and body). The UI will be using Macroquad
     - **Task List**
-        - [ ] Window using [Quicksilver](https://ryanisaacg.com/quicksilver)
-        - [ ] Gridboard
-        - [ ] Scoreboard
-        - [ ] Title screen with configuration for names & potentially lobbies?
+        - [x] Window using [Macroquad](https://github.com/not-fl3/macroquad)
+        - [x] Gridboard
+        - [x] Snek head and body
+        - [x] Snek movement
 - Game logic
-    - Handle interactions between sneks and keep track of scoring.
+    - Handle interactions between sneks and their environment.
     - **Task List**
-        - [ ] Snek to snek collision
-        - [ ] Alive/death snek state
-        - [ ] Board representation
-        - [ ] Scoring for every snek
+        - [x] Snek to snek collision
+        - [x] Snek to wall collision
+        - [x] Alive/death snek state
+        - [x] Board representation
 - Networking
     - Synchronize client data and broastcast a global game state.
     - **Task List**
         - Client
-            - [ ] Receiving and updating game state
-            - [ ] Serializing and sending game state
+            - [x] Receiving and updating game state
+            - [x] Serializing and sending game state
         - Server
-            - [ ] Handling client connections and disconnections
-            - [ ] Broadcast game state
+            - [x] Handling client connections and disconnections
+            - [x] Broadcast game state
 
 ### Possible Challenges
 - Writing the functionality to determine collisions between sneks

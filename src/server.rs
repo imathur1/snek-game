@@ -15,24 +15,25 @@ pub fn server() -> Result<(), ErrorKind> {
 
     let mut snek_ids: Vec<SnekId> = Vec::new();
     let mut addresses: HashMap<std::net::SocketAddr, SnekId> = HashMap::new();
-    let mut sneks: HashMap<SnekId, Snek> = HashMap::new();
     let mut moves: HashMap<std::net::SocketAddr, String> = HashMap::new();
     let mut game_start = false;
 
     loop {
-
         if let Ok(event) = receiver.recv() {
             match event {
                 SocketEvent::Packet(packet) => {
-                    let msg = packet.payload();
-                    let msg = String::from_utf8_lossy(msg);
+                    let msg = String::from_utf8_lossy(packet.payload());
                     if msg == "join" {
+                        // Only allow a maximum of 2 clients to join the game
                         if snek_ids.len() == 2 { continue }
-                        let id: u8 = join_game(&mut snek_ids, &mut sneks);
+
+                        // Get new id for the client and send it back to the client
+                        let id: u8 = join_game(&mut snek_ids);
                         println!("sending id {} back to client", id);
                         addresses.insert(packet.addr(), id);
                         sender.send(Packet::reliable_ordered(packet.addr(), id.to_string().as_bytes().to_vec(), Some(2)));
                         if snek_ids.len() == 2 {
+                            // If 2 clients have joined, start the game
                             game_start = true;
                             println!("Game Started");
                             for (addr, _) in addresses.iter() {
@@ -40,11 +41,16 @@ pub fn server() -> Result<(), ErrorKind> {
                             }
                         }
                     } else if msg == "heartbeat" {
+                        // Send a heartbeat back to the client to prevent timing out
                         sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(4)));
                     } else {
+                        // Receive moves from both clients. Once both are received send
+                        // them to the clients so they can update their game state simultaneously
+
                         // println!("Received message {}", msg);
                         moves.insert(packet.addr(), msg.to_string());
                         if moves.len() == 2 {
+                            // Send move to all other players
                             for (addr, snek_move) in moves.iter() {
                                 for (o_addr, _) in moves.iter() {
                                     if addr != o_addr {
@@ -52,8 +58,11 @@ pub fn server() -> Result<(), ErrorKind> {
                                     }
                                 }
                             }
+                            // Reset the moves for the next frame
                             moves = HashMap::new();
                         } else {
+                            // Only one move has been received, send heartbeat to prevent timing out
+                            // and to wait for the second move
                             sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(4)));
                         }
                     }
@@ -68,35 +77,12 @@ pub fn server() -> Result<(), ErrorKind> {
     Ok(())
 }
 
-pub fn join_game(snek_ids: &mut Vec<SnekId>, sneks: &mut HashMap<SnekId, Snek>) -> u8 {
+pub fn join_game(snek_ids: &mut Vec<SnekId>) -> u8 {
     let mut id: u8 = 1;
     if snek_ids.len() != 0 {
         id = snek_ids[snek_ids.len() - 1] + 1;
     }
     snek_ids.push(id);
-    let head: Coord = (5, 5);
-    let body: Vec<Coord> = Vec::new();
-    let direction: Direction = Direction::North;
-    let has_changed_direction: bool = false;
-    sneks.insert(id, Snek {id, head, body, direction, has_changed_direction});
     println!("Snek with id {} joined", id);
     return id;
-}
-
-pub fn update_game(msg: &str, snek_ids: &mut Vec<SnekId>, sneks: &mut HashMap<SnekId, Snek>) {
-    let msg: Vec<&str> = msg.split(",").collect();
-    let id: u8 = msg[0].parse().unwrap();
-    let direction = msg[1].to_uppercase();
-    let snek = &mut *sneks.get_mut(&id).unwrap();
-    if direction == "W" {
-        snek.set_direction(Direction::North);
-    } else if direction == "S" {
-        snek.set_direction(Direction::South);
-    } else if direction == "A" {
-        snek.set_direction(Direction::West);
-    } else if direction == "D" {
-        snek.set_direction(Direction::East);
-    }
-    snek.advance(false);
-    println!("Updated snek with id {}", id);
 }
