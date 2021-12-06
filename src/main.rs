@@ -1,64 +1,23 @@
-// use std::io::stdin;
-// use laminar::{ErrorKind};
-
-// mod server;
-// mod client;
-// mod shared;
-// mod snek;
-
-// fn main() -> Result<(), ErrorKind> {
-//     let stdin = stdin();
-//     println!("Please type in `server` or `client`.");
-
-//     let mut s = String::new();
-//     stdin.read_line(&mut s)?;
-//     if s.starts_with('s') {
-//         println!("Starting server..");
-//         server::server()
-//     } else {
-//         println!("Starting client..");
-//         client::client()
-//     }
-// }
-
 mod shared;
 mod game;
 mod snek;
+mod server;
+mod client;
 
-use std::collections::HashMap;
+use std::io::stdin;
+use laminar::{ErrorKind};
 
-use macroquad::prelude::*;
+fn main() -> Result<(), ErrorKind> {
+    let stdin = stdin();
+    println!("Please type in `server` or `client`.");
 
-use game::Game;
-
-const WINDOW_WIDTH: i32 = 800;
-const WINDOW_HEIGHT: i32 = 600;
-
-fn window_conf() -> Conf {
-    Conf {
-        window_title: "Snek".to_owned(),
-        window_resizable: false,
-        window_width: WINDOW_WIDTH,
-        window_height: WINDOW_HEIGHT,
-        ..Default::default()
-    }
-}
-
-#[macroquad::main(window_conf)]
-async fn main() {
-    let mut game = Game::new(
-        WINDOW_WIDTH,  WINDOW_HEIGHT,
-        20, 30, 20
-    );
-    game.spawn_snek(true);
-    game.spawn_snek(false);
-    // game.spawn_snek(false);
-    // game.spawn_snek(false);
-    loop {
-        clear_background(BLACK);
-
-        game.update();
-
-        next_frame().await
+    let mut s = String::new();
+    stdin.read_line(&mut s)?;
+    if s.starts_with('s') {
+        println!("Starting server..");
+        server::server()
+    } else {
+        println!("Starting client..");
+        client::client()
     }
 }

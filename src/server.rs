@@ -26,24 +26,29 @@ pub fn server() -> Result<(), ErrorKind> {
                     let msg = packet.payload();
                     let msg = String::from_utf8_lossy(msg);
                     if msg == "join" {
+                        if snek_ids.len() == 2 { continue }
                         let id: u8 = join_game(&mut snek_ids, &mut sneks);
                         println!("sending id {} back to client", id);
                         addresses.insert(packet.addr());
-                        sender.send(Packet::reliable_ordered(packet.addr(), id.to_string().as_bytes().to_vec(), Some(1)));
+                        sender.send(Packet::reliable_ordered(packet.addr(), id.to_string().as_bytes().to_vec(), Some(2)));
                         if snek_ids.len() == 2 {
                             game_start = true;
                             println!("Game Started");
                             for addr in addresses.iter() {
-                                sender.send(Packet::reliable_ordered(*addr, "start".as_bytes().to_vec(), Some(1)));
+                                sender.send(Packet::reliable_ordered(*addr, "start".as_bytes().to_vec(), Some(3)));
                             }
                         }
                     } else if msg == "heartbeat" {
                         // println!("sending heartbeat");
-                        sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(0)));
+                        sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(4)));
                     } else {
                         println!("Received message {}", msg);
-                        update_game(&msg, &mut snek_ids, &mut sneks);
-                        sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(1)));
+                        // update_game(&msg, &mut snek_ids, &mut sneks);
+                        for addr in addresses.iter() {
+                            if *addr != packet.addr() {
+                                sender.send(Packet::reliable_ordered(*addr, msg.as_bytes().to_vec(), Some(3)));
+                            }
+                        }
                     }
                 }
                 SocketEvent::Timeout(address) => {
@@ -57,15 +62,16 @@ pub fn server() -> Result<(), ErrorKind> {
 }
 
 pub fn join_game(snek_ids: &mut Vec<SnekId>, sneks: &mut HashMap<SnekId, Snek>) -> u8 {
-    let mut id: u8 = 0;
+    let mut id: u8 = 1;
     if snek_ids.len() != 0 {
         id = snek_ids[snek_ids.len() - 1] + 1;
     }
     snek_ids.push(id);
     let head: Coord = (5, 5);
     let body: Vec<Coord> = Vec::new();
-    let direction: Direction = Direction::NORTH;
-    sneks.insert(id, Snek {id, head, body, direction});
+    let direction: Direction = Direction::North;
+    let has_changed_direction: bool = false;
+    sneks.insert(id, Snek {id, head, body, direction, has_changed_direction});
     println!("Snek with id {} joined", id);
     return id;
 }
@@ -76,14 +82,14 @@ pub fn update_game(msg: &str, snek_ids: &mut Vec<SnekId>, sneks: &mut HashMap<Sn
     let direction = msg[1].to_uppercase();
     let snek = &mut *sneks.get_mut(&id).unwrap();
     if direction == "W" {
-        snek.set_direction(Direction::NORTH);
+        snek.set_direction(Direction::North);
     } else if direction == "S" {
-        snek.set_direction(Direction::SOUTH);
+        snek.set_direction(Direction::South);
     } else if direction == "A" {
-        snek.set_direction(Direction::WEST);
+        snek.set_direction(Direction::West);
     } else if direction == "D" {
-        snek.set_direction(Direction::EAST);
+        snek.set_direction(Direction::East);
     }
-    snek.update();
+    snek.advance(false);
     println!("Updated snek with id {}", id);
 }

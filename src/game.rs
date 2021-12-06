@@ -1,5 +1,6 @@
 use core::time;
 use std::{collections::HashMap, convert::TryInto};
+use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 
 use macroquad::prelude::*;
 use crate::snek::Snek;
@@ -20,7 +21,7 @@ pub struct Game {
     grid_x: i32,
     grid_y: i32,
     internal_grid: Vec<SnekId>,
-    sneks: HashMap<SnekId, Snek>,
+    pub sneks: HashMap<SnekId, Snek>,
     my_snek_id: SnekId,
     current_snek_id: SnekId,
 
@@ -59,11 +60,6 @@ impl Game {
                 (self.grid_x_count - STARTING_LENGTH + 1..self.grid_x_count).into_iter().map(|x| (x, 0)).collect(),
                 Direction::West
             )),
-            3 => Ok((
-                (self.grid_x_count - STARTING_LENGTH, self.grid_y_count - 1), 
-                (self.grid_x_count - STARTING_LENGTH + 1..self.grid_x_count).into_iter().map(|x| (x, self.grid_y_count - 1)).collect(),
-                Direction::West
-            )),
             _ => Err("Exceeded player count!")
         }
     }
@@ -88,9 +84,27 @@ impl Game {
         Ok(id)
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, socket: &mut Socket, server: &std::net::SocketAddr) {
         // Read input
-        self.handle_events();
+        self.handle_events();  
+        
+        if let Some(snek) = self.sneks.get_mut(&self.my_snek_id) {
+            let mut snek_move = String::new();
+            if (snek.direction == Direction::North) {
+                snek_move = String::from("W");
+            } else if (snek.direction == Direction::South) {
+                snek_move = String::from("S");
+            } else if (snek.direction == Direction::West) {
+                snek_move = String::from("A");
+            } else {
+                snek_move = String::from("D");
+            }
+            socket.send(Packet::reliable_ordered(
+                *server,
+                snek_move.as_bytes().to_vec(),
+                Some(7),
+            ));
+        } 
 
         // Update sneks
         let time_passed: bool = (get_time() - self.last_time) >= 0.15;
@@ -101,10 +115,23 @@ impl Game {
                 match result {
                     UpdateResult::WallCollision => {
                         dead.push(*id);
+                        println!("Killed by wall");
+                        // let msg = String::from("dead,") + &id.to_string();
+                        // socket.send(Packet::reliable_ordered(
+                        //     *server,
+                        //     msg.as_bytes().to_vec(),
+                        //     Some(8),
+                        // ));
                     },
                     UpdateResult::PlayerCollision(snek_id) => {
                         dead.push(*id);
                         println!("Killed by snek ID {}", snek_id);
+                        // let msg = String::from("dead,") + &id.to_string();
+                        // socket.send(Packet::reliable_ordered(
+                        //     *server,
+                        //     msg.as_bytes().to_vec(),
+                        //     Some(8),
+                        // ));
                     },
                     _ => {}
                 }
