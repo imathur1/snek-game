@@ -1,11 +1,5 @@
-[package]
-name = "rust-project"
-version = "0.1.0"
-edition = "2021"
+# Virtual manifest
+# See: https://doc.rust-lang.org/cargo/reference/workspaces.html
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-laminar = "0.3"
-rand="0.8.4"
-macroquad = "0.3"
+[workspace]
+members = ["server", "client", "shared"]

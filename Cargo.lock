@@ -103,9 +103,9 @@ dependencies = [
 
 [[package]]
 name = "crc32fast"
-version = "1.2.1"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81156fece84ab6a9f2afdb109ce3ae577e42b1228441eded99bd77f627953b1a"
+checksum = "738c290dfaea84fc1ca15ad9c168d083b05a714e1efddd8edaab678dc28d2836"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -256,9 +256,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.107"
+version = "0.2.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbe5e23404da5b4f555ef85ebed98fb4083e55a00c317800bc2a50ede9f3d219"
+checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 
 [[package]]
 name = "log"
@@ -271,9 +271,9 @@ dependencies = [
 
 [[package]]
 name = "macroquad"
-version = "0.3.10"
+version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d54a31d3996831b27b429f8e9d7b948aa589d3571305eba39f57b4600bd2cd01"
+checksum = "c2cc6cf9b95c709d4fe49eeefb73f8a82a85c0a5eae71451a498b52692a99821"
 dependencies = [
  "bumpalo",
  "fontdue",
@@ -299,9 +299,9 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 
 [[package]]
 name = "miniquad"
-version = "0.3.0-alpha.37"
+version = "0.3.0-alpha.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6793a3ef846953fc7c01302093abf8749be22742c63db05c66ef0a2c889a7fbb"
+checksum = "84ce43265dbb9508bfe0f9713d84f468184e94e9930ea3ef7019887ee08c82b5"
 dependencies = [
  "sapp-android",
  "sapp-darwin",
@@ -323,9 +323,9 @@ dependencies = [
 
 [[package]]
 name = "ndk-sys"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c44922cb3dbb1c70b5e5f443d63b64363a898564d739ba5198e3a9138442868d"
+checksum = "e1bcdd74c20ad5d95aacd60ef9ba40fdf77f767051040541df557b7a9b2a2121"
 
 [[package]]
 name = "num-integer"
@@ -514,19 +514,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-project"
-version = "0.1.0"
-dependencies = [
- "laminar",
- "macroquad",
- "rand 0.8.4",
-]
-
-[[package]]
 name = "sapp-android"
-version = "0.1.8"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a4a81f462ba2783213978528560aa138adf2f94da1ac940c1b5c854c03e1724"
+checksum = "9c0d0e6f562c01c533f693ac9c045d69cbeab24d2e16caaaa0e67d06ae6e0940"
 dependencies = [
  "libc",
  "ndk-sys",
@@ -576,12 +567,16 @@ checksum = "00e859e8645a3bcb85aecd40bab883438e4105f21b21bccbeac2348760f508bb"
 
 [[package]]
 name = "sapp-windows"
-version = "0.2.18"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8faec983cb54ce5e9529815fc0aae6c36bab9fba9cd0ae5590dfa17bc0719fa"
+checksum = "f3e9a4ab4682752ffcbbacf87b44c75373479331dfe408432280d305e0563c9c"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "shared"
+version = "1.0.0"
 
 [[package]]
 name = "smallvec"
@@ -590,6 +585,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b97fcaeba89edba30f044a10c6a3cc39df9c3f17d7cd829dd1446cab35f890e0"
 dependencies = [
  "maybe-uninit",
+]
+
+[[package]]
+name = "snek-client"
+version = "1.0.0"
+dependencies = [
+ "laminar",
+ "macroquad",
+ "rand 0.8.4",
+ "shared",
+]
+
+[[package]]
+name = "snek-server"
+version = "1.0.0"
+dependencies = [
+ "laminar",
+ "rand 0.8.4",
+ "shared",
 ]
 
 [[package]]

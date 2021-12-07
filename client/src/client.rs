@@ -1,18 +1,16 @@
-use std::io::stdin;
 use std::time::Instant;
 use std::{thread, time};
-use std::collections::HashMap;
 
 use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 use rand::seq::SliceRandom;
-use macroquad::prelude::{next_frame, clear_background, Conf, BLACK, get_time};
+use macroquad::prelude::{next_frame, clear_background, Conf, BLACK};
+use shared::Direction;
 use crate::game::Game;
-use crate::shared::{Coord, Direction, SnekId};
 
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 800;
 
-const SERVER: &str = "192.168.1.3:12351"; // "127.0.0.1:12351";
+const SERVER: &str = "127.0.0.1:8080";
 
 pub fn client() -> Result<(), ErrorKind> {
     main();
@@ -64,7 +62,7 @@ async fn main() -> Result<(), ErrorKind> {
         match socket.recv() {
             Some(SocketEvent::Packet(packet)) => {
                 if packet.addr() == server {
-                    if (snek_id == "-1") {
+                    if snek_id == "-1" {
                         // Client joined the game and receives an id from the server
                         snek_id = String::from_utf8_lossy(packet.payload()).to_string();
                         println!("Server gave id: {}", snek_id);
@@ -76,12 +74,12 @@ async fn main() -> Result<(), ErrorKind> {
                             println!("Game Started");
                         
                             // Spawn sneks depending on which player the client is
-                            if (snek_id == "1") {
-                                game.spawn_snek(true);
-                                game.spawn_snek(false);
+                            if snek_id == "1" {
+                                game.spawn_snek(true).unwrap();
+                                game.spawn_snek(false).unwrap();
                             } else {
-                                game.spawn_snek(false);
-                                game.spawn_snek(true);
+                                game.spawn_snek(false).unwrap();
+                                game.spawn_snek(true).unwrap();
                             }
 
                             // First move is east. Send to server
@@ -89,7 +87,7 @@ async fn main() -> Result<(), ErrorKind> {
                                 server,
                                 "D".as_bytes().to_vec(),
                                 Some(5),
-                            ));
+                            )).unwrap();
                         }
 
                         if game_start && data != "heartbeat" && data != "start" {
@@ -115,8 +113,8 @@ async fn main() -> Result<(), ErrorKind> {
 
                             // If a snek is dead, determine who won
                             if game.sneks.len() == 1 {
-                                for (id, snek) in game.sneks.iter() {
-                                    if (id.to_string() == snek_id) {
+                                for (id, _) in game.sneks.iter() {
+                                    if id.to_string() == snek_id {
                                         println!("You win!");
                                     } else {
                                         println!("You lose!");

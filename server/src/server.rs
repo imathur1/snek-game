@@ -1,12 +1,11 @@
 use std::thread;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 
-use crate::snek::Snek;
-use crate::shared::{Coord, Direction, SnekId};
+use shared::SnekId;
 
-const SERVER: &str = "192.168.1.3:12351"; // "127.0.0.1:12351";
+const SERVER: &str = "127.0.0.1:8080";
 
 pub fn server() -> Result<(), ErrorKind> {
     let mut socket = Socket::bind(SERVER)?;
@@ -31,18 +30,18 @@ pub fn server() -> Result<(), ErrorKind> {
                         let id: u8 = join_game(&mut snek_ids);
                         println!("sending id {} back to client", id);
                         addresses.insert(packet.addr(), id);
-                        sender.send(Packet::reliable_ordered(packet.addr(), id.to_string().as_bytes().to_vec(), Some(2)));
+                        sender.send(Packet::reliable_ordered(packet.addr(), id.to_string().as_bytes().to_vec(), Some(2))).unwrap();
                         if snek_ids.len() == 2 {
                             // If 2 clients have joined, start the game
                             game_start = true;
                             println!("Game Started");
                             for (addr, _) in addresses.iter() {
-                                sender.send(Packet::reliable_ordered(*addr, "start".as_bytes().to_vec(), Some(3)));
+                                sender.send(Packet::reliable_ordered(*addr, "start".as_bytes().to_vec(), Some(3))).unwrap();
                             }
                         }
                     } else if msg == "heartbeat" {
                         // Send a heartbeat back to the client to prevent timing out
-                        sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(0)));
+                        sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(0))).unwrap();
                     } else {
                         // Receive moves from both clients. Once both are received send
                         // them to the clients so they can update their game state simultaneously
@@ -54,7 +53,7 @@ pub fn server() -> Result<(), ErrorKind> {
                             for (addr, snek_move) in moves.iter() {
                                 for (o_addr, _) in moves.iter() {
                                     if addr != o_addr {
-                                        sender.send(Packet::reliable_ordered(*o_addr, snek_move.as_bytes().to_vec(), Some(4)));
+                                        sender.send(Packet::reliable_ordered(*o_addr, snek_move.as_bytes().to_vec(), Some(4))).unwrap();
                                     }
                                 }
                             }
@@ -63,7 +62,7 @@ pub fn server() -> Result<(), ErrorKind> {
                         } else {
                             // Only one move has been received, send heartbeat to prevent timing out
                             // and to wait for the second move
-                            sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(0)));
+                            sender.send(Packet::reliable_ordered(packet.addr(), "heartbeat".as_bytes().to_vec(), Some(0))).unwrap();
                         }
                     }
                 }
@@ -74,7 +73,6 @@ pub fn server() -> Result<(), ErrorKind> {
             }
         }
     }
-    Ok(())
 }
 
 pub fn join_game(snek_ids: &mut Vec<SnekId>) -> u8 {

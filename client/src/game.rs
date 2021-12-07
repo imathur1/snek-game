@@ -1,10 +1,9 @@
-use core::time;
-use std::{collections::HashMap, convert::TryInto};
-use laminar::{ErrorKind, Packet, Socket, SocketEvent};
+use std::collections::HashMap;
+use laminar::{Packet, Socket};
 
 use macroquad::prelude::*;
 use crate::snek::Snek;
-use crate::shared::{Coord, Direction, SnekId, UpdateResult};
+use shared::{Coord, Direction, SnekId, UpdateResult};
 
 const MAX_PLAYERS: usize = 2;
 const STARTING_LENGTH: i32 = 10;
@@ -90,7 +89,7 @@ impl Game {
                     UpdateResult::WallCollision => {
                         dead.push(*id);
                     },
-                    UpdateResult::PlayerCollision(snek_id) => {
+                    UpdateResult::PlayerCollision(_) => {
                         dead.push(*id);
                     },
                     _ => {}
@@ -134,12 +133,12 @@ impl Game {
         self.handle_events();  
 
         if let Some(snek) = self.sneks.get_mut(&self.my_snek_id) {
-            let mut snek_move = String::new();
-            if (snek.direction == Direction::North) {
+            let snek_move;
+            if snek.direction == Direction::North {
                 snek_move = String::from("W");
-            } else if (snek.direction == Direction::South) {
+            } else if snek.direction == Direction::South {
                 snek_move = String::from("S");
-            } else if (snek.direction == Direction::West) {
+            } else if snek.direction == Direction::West {
                 snek_move = String::from("A");
             } else {
                 snek_move = String::from("D");
@@ -148,7 +147,7 @@ impl Game {
                 *server,
                 snek_move.as_bytes().to_vec(),
                 Some(5),
-            ));
+            )).unwrap();
         } 
     }
 

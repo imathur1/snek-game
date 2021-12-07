@@ -1,4 +1,4 @@
-use crate::shared::{Coord, Direction, SnekId};
+use shared::{Coord, Direction, SnekId};
 
 pub struct Snek {
     pub id: SnekId,
