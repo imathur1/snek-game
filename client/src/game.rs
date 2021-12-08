@@ -5,7 +5,7 @@ use crate::snek::Snek;
 use shared::{Coord, Direction, SnekId, UpdateResult, MAX_PLAYERS};
 
 
-const STARTING_LENGTH: i32 = 10;
+const STARTING_LENGTH: i32 = 2;
 
 pub struct Game {
     pub screen_width: i32,
