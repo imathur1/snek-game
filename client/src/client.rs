@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 use macroquad::prelude::{next_frame, get_time, clear_background, Conf, BLACK};
-use shared::{StreamId, MessageType, MAGIC_BYTE, Direction, GameResult};
+use shared::{MessageType, MAGIC_BYTE, Direction, GameResult};
 use crate::game::Game;
 
 const WINDOW_WIDTH: i32 = 800;
@@ -15,7 +15,7 @@ pub fn client() {
     main();
 }
 
-fn send_packet(message_type: MessageType, payload: Vec<u8>, address: SocketAddr, stream_id: u8, sender: &mut Socket) {
+fn send_packet(message_type: MessageType, payload: Vec<u8>, address: SocketAddr, sender: &mut Socket) {
     // if message_type != MessageType::Heartbeat {
     //     println!("sending packet with payload {:?}", payload);
     // }
@@ -144,13 +144,19 @@ async fn main() -> Result<(), ErrorKind> {
 
     let mut server_address_string = String::new();
     stdin.read_line(&mut server_address_string)?;
+    if server_address_string.ends_with('\n') {
+        server_address_string.pop();
+        if server_address_string.ends_with('\r') {
+            server_address_string.pop();
+        }
+    }
 
     // Tell server to add the client
     let server_address = match server_address_string.parse::<SocketAddr>() {
         Ok(address) => address,
         Err(_) => "127.0.0.1:8080".parse::<SocketAddr>().unwrap()
     };
-    send_packet(MessageType::JoinEvent, vec![], server_address, StreamId::Event as u8, &mut socket);
+    send_packet(MessageType::JoinEvent, vec![], server_address, &mut socket);
     socket.manual_poll(Instant::now());
     println!("Attempting to join server {}...", server_address);
 
@@ -186,7 +192,7 @@ async fn main() -> Result<(), ErrorKind> {
                     payload.push(snek_id);
                 }
                 send_packet(MessageType::DeathEvent, payload, server_address, 
-                    StreamId::Event as u8, &mut socket);
+                    &mut socket);
                 game.end_game();
             } else {
                 let time_passed = (get_time() - last_send_move_time) >= 0.03;
@@ -196,7 +202,7 @@ async fn main() -> Result<(), ErrorKind> {
                     if game.get_previous_snek_direction(my_id) != direction {
                         println!("Updating movement!");
                         send_packet(MessageType::MoveEvent, vec![my_id, direction as u8], server_address, 
-                            StreamId::Event as u8, &mut socket);
+                            &mut socket);
                         game.set_previous_snek_direction(my_id, direction);
                     }
                     last_send_move_time = get_time();
@@ -207,7 +213,7 @@ async fn main() -> Result<(), ErrorKind> {
         let time_passed = (get_time() - last_heartbeat_time) >= 1.0;
         if time_passed {
             send_packet(MessageType::Heartbeat, vec![], server_address, 
-                StreamId::Event as u8, &mut socket);
+                &mut socket);
             last_heartbeat_time = get_time();
         }
 
