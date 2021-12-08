@@ -5,7 +5,7 @@ use std::io::Write;
 use laminar::ErrorKind;
 
 fn main() -> Result<(), ErrorKind> {
-    //Start the server
+    // Start the server
     let stdin = io::stdin();
 
     print!("Port the server should listen on (8080): ");
