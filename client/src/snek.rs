@@ -11,6 +11,7 @@ pub struct Snek {
 impl Snek {
 
     pub fn get_new_head_coord(&self) -> Coord {
+        // Get the new head coord based on direction inputted
         match self.direction {
             Direction::North => (self.head.0, self.head.1 - 1),
             Direction::South => (self.head.0, self.head.1 + 1),
@@ -33,6 +34,7 @@ impl Snek {
     }
     
     pub fn advance(&mut self, should_grow: bool) {
+        // Move the snek to new position and grow if necessary
         if !should_grow {
             self.body.pop();
         }

@@ -5,7 +5,7 @@ use crate::snek::Snek;
 use shared::{Coord, Direction, SnekId, UpdateResult, MAX_PLAYERS};
 
 
-const STARTING_LENGTH: i32 = 2;
+const STARTING_LENGTH: i32 = 10;
 
 pub struct Game {
     pub screen_width: i32,
@@ -40,26 +40,32 @@ impl Game {
     }
 
     pub fn get_my_snek_id(&self) -> SnekId {
+        // Get my snek id
         self.my_snek_id
     }
 
     pub fn set_my_snek_id(&mut self, id: SnekId) {
+        // Set my snek id
         self.my_snek_id = id;
     }
 
     pub fn has_started(&self) -> bool {
+        // Check if started
         self.started
     }
 
     pub fn start_game(&mut self) {
+        // Start the game
         self.started = true;
     }
 
     pub fn end_game(&mut self) {
+        // End the game
         self.started = false;
     }
 
     fn get_spawn(&self, id: SnekId) -> Result<(Coord, Vec<Coord>, Direction), &str> {
+        // Get the spawn locations based on # of players
         match id {
             1 => Ok((
                 (STARTING_LENGTH - 1, 0), 
@@ -86,6 +92,7 @@ impl Game {
     }
 
     pub fn spawn_snek(&mut self, id: SnekId) -> Result<(), &str> {
+        // Spawn the snek at specified location
         if self.sneks.len() >= MAX_PLAYERS {
             return Err("Exceeded player count!");
         }
@@ -103,6 +110,7 @@ impl Game {
         // Update sneks
         if self.started && should_update {
             let mut dead: Vec<SnekId> = Vec::new();
+            // Check for collisions
             for (id, snek) in self.sneks.iter_mut() {
                 // println!("Snek of {} is going {}", id, snek.direction as u8);
                 let result = Game::update_snek(snek, &mut self.internal_grid, self.grid_x_count, self.grid_y_count);
@@ -116,12 +124,14 @@ impl Game {
                     _ => {}
                 }
             }
+            // Remove the dead sneks
             for id in dead {
                 // println!("snek {} died!", id);
                 Game::remove_snek(id, &mut self.sneks, &mut self.internal_grid, self.grid_x_count);
             }
         }
         
+        // Draw the sneks
         for (_, snek) in self.sneks.iter() {
             draw_rectangle((self.grid_x + snek.head.0 * self.grid_size) as f32, 
                 (self.grid_y + snek.head.1 * self.grid_size) as f32, self.grid_size as f32, self.grid_size as f32, YELLOW);
@@ -169,26 +179,32 @@ impl Game {
     }
 
     pub fn get_all_snek_ids(&self) -> Vec<SnekId> {
+        // Get all of the snek ids
         self.sneks.keys().cloned().collect()
     }
 
     pub fn is_alive(&self, snek_id: SnekId) -> bool {
+        // Check if a snek is still alive
         self.sneks.contains_key(&snek_id)
     }
     
     pub fn get_previous_snek_direction(&self, snek_id: SnekId) -> Direction {
+        // Get the snek's previous direction
         self.sneks[&snek_id].previous_direction
     }
 
     pub fn set_previous_snek_direction(&mut self, snek_id: SnekId, direction: Direction) {
+        // Set the snek's previous direction
         self.sneks.get_mut(&snek_id).unwrap().previous_direction = direction;
     }
 
     pub fn get_snek_direction(&self, snek_id: SnekId) -> Direction {
+        // Get the snek's current direction
         self.sneks[&snek_id].direction
     }
 
     pub fn move_snek(&mut self, snek_id: SnekId, direction: Direction) {
+        // Move the snek in specified direction
         if let Some(snek) = self.sneks.get_mut(&snek_id) {
             // if !snek.has_changed_direction {
             //     snek.has_changed_direction = true;
@@ -199,6 +215,7 @@ impl Game {
     }
 
     pub fn handle_events(&mut self) {
+        // Get arrow key input
         if !self.has_started() {
             return;
         }
@@ -215,7 +232,7 @@ impl Game {
 
     fn update_snek(snek: &mut Snek, grid: &mut Vec<SnekId>, width: i32, height: i32) -> UpdateResult {
         // snek.has_changed_direction = false;
-
+        // Check for collisions
         let new_head = snek.get_new_head_coord();
         if new_head.0 < 0 || new_head.0 >= width || new_head.1 < 0 || new_head.1 >= height {
             return UpdateResult::WallCollision;
@@ -248,6 +265,7 @@ impl Game {
     }
 
     fn remove_snek(id: SnekId, sneks: &mut HashMap<SnekId, Snek>, grid: &mut Vec<SnekId>, width: i32) {
+        // Remove snek from board
         let snek = sneks.remove(&id).unwrap();
         let index = Game::get_1d_index(snek.head.0, snek.head.1, width);
         grid[index] = 0;
@@ -258,22 +276,27 @@ impl Game {
     }
 
     fn offset_x(&self, x: i32) -> i32 {
+        // Offset x coordinate
         self.grid_x + x
     }
 
     fn offset_y(&self, y: i32) -> i32 {
+        // Offset y coordinate
         self.grid_y + y
     }
 
     fn get_1d_index(x: i32, y: i32, width: i32) -> usize {
+        // Get the value at the specific location on grid
         (x + y * width) as usize
     }
 
     fn get_snek_at(x: i32, y: i32, width: i32, grid: &Vec<SnekId>) -> SnekId {
+        // Get the snek at specified location
         grid[Game::get_1d_index(x, y, width)]
     }
 
     fn set_snek_at(x: i32, y: i32, id: SnekId, width: i32, grid: &mut Vec<SnekId>) {
+        // Set the snek at specified location
         grid[Game::get_1d_index(x, y, width)] = id;
     }
 }

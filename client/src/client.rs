@@ -19,6 +19,7 @@ fn send_packet(message_type: MessageType, payload: Vec<u8>, address: SocketAddr,
     // if message_type != MessageType::Heartbeat {
     //     println!("sending packet with payload {:?}", payload);
     // }
+    // Client sends a packet to server
     let mut actual_payload = vec![MAGIC_BYTE, message_type as u8];
     actual_payload.extend(payload.iter());
     sender.send(Packet::reliable_sequenced(address, actual_payload, Some(0))).unwrap();
@@ -26,6 +27,7 @@ fn send_packet(message_type: MessageType, payload: Vec<u8>, address: SocketAddr,
 }
 
 fn handle_packet(packet: Packet, game: &mut Game) -> bool {
+    // Client receives a packet from server
     let payload = packet.payload();
     // println!("payload: {:?}", payload);
     let magic_byte = payload[0];
@@ -34,7 +36,9 @@ fn handle_packet(packet: Packet, game: &mut Game) -> bool {
     }
     let message_type = payload[1];
     let received_data = &packet.payload()[2..];
+    // Handle different events recieved
     match message_type {
+        // Assign the snek ids
         x if x == MessageType::AssignIdEvent as u8 => {
             let assigned_id = received_data[0];
             println!("Assigned ID {}", assigned_id);
@@ -42,6 +46,7 @@ fn handle_packet(packet: Packet, game: &mut Game) -> bool {
             game.set_my_snek_id(assigned_id);
             return false;
         },
+        // Broadcast the current sneks playing
         x if x == MessageType::BroadcastIdsEvent as u8 => {
             println!("IDs: {:?}", received_data);
             for &id in received_data {
@@ -51,11 +56,13 @@ fn handle_packet(packet: Packet, game: &mut Game) -> bool {
             }
             return false;
         },
+        // Start the game
         x if x == MessageType::StartEvent as u8 => {
             println!("Starting!");
             game.start_game();
             return true;
         },
+        // Update game from snek moves
         x if x == MessageType::MoveEvent as u8 => {
             // println!("Moving!");
             for i in (0..received_data.len()).step_by(2) {
@@ -72,6 +79,7 @@ fn handle_packet(packet: Packet, game: &mut Game) -> bool {
             }
             return true;
         },
+        // End the game and broadcast the result
         x if x == MessageType::EndEvent as u8 => {
             println!("Game ended!");
             match received_data[0] {
@@ -89,6 +97,7 @@ fn handle_packet(packet: Packet, game: &mut Game) -> bool {
             game.end_game();
             return false;
         },
+        // Send heartbeat
         x if x == MessageType::Heartbeat as u8 => {
             // println!("Heartbeat!");
             return false;
@@ -98,6 +107,7 @@ fn handle_packet(packet: Packet, game: &mut Game) -> bool {
 }
 
 fn window_conf() -> Conf {
+    // Configures the client's window
     Conf {
         window_title: "Snek".to_owned(),
         window_resizable: false,
@@ -111,7 +121,7 @@ fn window_conf() -> Conf {
 async fn main() -> Result<(), ErrorKind> {
     let mut port = 8432;
     let mut addr: String;
-
+    // Bind the client to the server socket 
     let mut socket: Socket;
     loop {
         addr = format!("{}:{}", "127.0.0.1", port);
@@ -129,7 +139,7 @@ async fn main() -> Result<(), ErrorKind> {
 
     let stdin = io::stdin();
 
-    print!("Sever IP:port (127.0.0.1:8080): ");
+    print!("Enter server IP:port (127.0.0.1:8080): ");
     io::stdout().flush().unwrap();
 
     let mut server_address_string = String::new();
@@ -167,6 +177,7 @@ async fn main() -> Result<(), ErrorKind> {
             _ => {}
         }
         // send_packet(MessageType::DeathEvent, vec![], server_address, StreamId::Heartbeat as u8, &mut socket);
+        // Handles the game state 
         if game.has_started() {
             let my_id = game.get_my_snek_id();
             if !game.is_alive(my_id) {
@@ -192,7 +203,7 @@ async fn main() -> Result<(), ErrorKind> {
                 }
             }
         }
-
+        // Send heartbeat if no event has occurred during specified period to prevent timeout
         let time_passed = (get_time() - last_heartbeat_time) >= 1.0;
         if time_passed {
             send_packet(MessageType::Heartbeat, vec![], server_address, 
