@@ -601,6 +601,7 @@ dependencies = [
 name = "snek-server"
 version = "1.0.0"
 dependencies = [
+ "crossbeam-channel",
  "laminar",
  "rand 0.8.4",
  "shared",

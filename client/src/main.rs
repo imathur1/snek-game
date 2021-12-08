@@ -2,9 +2,7 @@ mod client;
 mod game;
 mod snek;
 
-use laminar::{ErrorKind};
-
-fn main() -> Result<(), ErrorKind> {
+fn main() {
     println!("Starting client...");
-    client::client()
+    client::client();
 }

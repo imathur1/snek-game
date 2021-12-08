@@ -4,8 +4,8 @@ pub struct Snek {
     pub id: SnekId,
     pub head: Coord,
     pub body: Vec<Coord>,
-    pub direction: Direction,
-    pub has_changed_direction: bool // reset every frame
+    pub previous_direction: Direction,
+    pub direction: Direction
 }
 
 impl Snek {
@@ -16,6 +16,7 @@ impl Snek {
             Direction::South => (self.head.0, self.head.1 + 1),
             Direction::East => (self.head.0 + 1, self.head.1),
             Direction::West => (self.head.0 - 1, self.head.1),
+            Direction::Invalid => (self.head.0, self.head.1)
         }
     }
 
@@ -26,6 +27,7 @@ impl Snek {
             Direction::South => if self.direction == Direction::North { return; },
             Direction::East => if self.direction == Direction::West { return; },
             Direction::West => if self.direction == Direction::East { return; }
+            Direction::Invalid => { return; }
         };
         self.direction = direction;
     }
