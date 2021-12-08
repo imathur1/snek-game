@@ -7,8 +7,6 @@ use crossbeam_channel::Sender;
 use laminar::{ErrorKind, Packet, Socket, SocketEvent, Config};
 use shared::{SnekId, StreamId, MessageType, GameResult, INVALID_ID, MAGIC_BYTE, MAX_PLAYERS};
 
-const SERVER: &str = "127.0.0.1:8080";
-
 struct ServerState {
     pub snek_ids: Vec<SnekId>,
     pub address_to_id: HashMap<SocketAddr, SnekId>,
@@ -120,14 +118,17 @@ fn handle_packet(packet: &Packet, sender: &Sender<Packet>, state: &mut ServerSta
             }
             // let origin_snek_id = state.address_to_id[&address];
             // Broadcast game end event
-            for (&snek_address, &snek_id) in state.address_to_id.iter() {
-                match received_data.len() {
-                    0 => {
+            match received_data.len() {
+                0 => {
+                    for (&snek_address, _) in state.address_to_id.iter() {
                         send_packet(MessageType::EndEvent, 
                             vec![GameResult::Tie as u8, INVALID_ID], snek_address, StreamId::Event as u8, sender);
-                    },
-                    1 => {
-                        let winner = received_data[0];
+                    }
+                    state.end_game();
+                },
+                1 => {
+                    let winner = received_data[0];
+                    for (&snek_address, &snek_id) in state.address_to_id.iter() {
                         if snek_id == winner {
                             send_packet(MessageType::EndEvent, 
                                 vec![GameResult::Win as u8, winner], snek_address, StreamId::Event as u8, sender);
@@ -135,24 +136,26 @@ fn handle_packet(packet: &Packet, sender: &Sender<Packet>, state: &mut ServerSta
                             send_packet(MessageType::EndEvent, 
                                 vec![GameResult::Loss as u8, winner], snek_address, StreamId::Event as u8, sender);
                         }
-                    },
-                    _ => {
-                        for &snek_id in received_data {
-                            println!("Snek ID {} is alive", snek_id);
-                        }
+                    }
+                    state.end_game();
+                },
+                _ => {
+                    for &snek_id in received_data {
+                        println!("Snek ID {} is alive", snek_id);
                     }
                 }
             }
-            state.end_game();
         }
         _ => {}
     }
 }
 
-pub fn server() -> Result<(), ErrorKind> {
+pub fn server(port: i32) -> Result<(), ErrorKind> {
     let mut config = Config::default();
     config.socket_event_buffer_size = 100;
-    let mut socket = Socket::bind_with_config(SERVER, config)?;
+    let mut socket = Socket::bind_with_config(format!("{}:{}", "127.0.0.1", port.to_string()), config)?;
+    println!("Server is listening on port {}", port);
+
     let (sender, receiver) = (
         socket.get_packet_sender(), socket.get_event_receiver());
     let _thread = thread::spawn(move || socket.start_polling());
@@ -167,19 +170,6 @@ pub fn server() -> Result<(), ErrorKind> {
 
     let mut now = Instant::now();
     'outer: loop {
-        // println!("loop");
-        // socket.manual_poll(Instant::now());
-        // match socket.recv() {
-        //     Some(SocketEvent::Packet(packet)) => handle_packet(&packet, &mut socket, &mut state),
-        //     Some(SocketEvent::Timeout(address)) => {
-        //         println!("Client timed out: {}", address);
-        //     }
-        //     _ => {}
-        // }
-        // for (&addr, _) in &state.address_to_id {
-        //     send_packet(MessageType::Heartbeat, vec![], addr, StreamId::Heartbeat as u8, &sender);
-        // }
-        // println!("length: {}", receiver.len());
         if let Ok(event) = receiver.try_recv() {
             match event {
                 SocketEvent::Packet(packet) => handle_packet(&packet, &sender, &mut state),
@@ -189,19 +179,15 @@ pub fn server() -> Result<(), ErrorKind> {
                 _ => {}
             }
         }
-        // println!("elasped: {}", now.elapsed().as_millis());
-        if state.game_started && now.elapsed().as_millis() >= 100 {
-            // println!("Broadcasting move");
+        if state.game_started && now.elapsed().as_millis() >= 120 {
             // Send move to all other players
             for (&snek_address, _) in state.address_to_id.iter() {
                 let mut payload = Vec::new();
                 for (&origin_snek_id, &sent_move) in state.moves.iter() {
                     if sent_move == 42 {
-                        // println!("skipping");
                         now = Instant::now();
                         continue 'outer;
                     }
-                    // println!("Snek {} sent {}", origin_snek_id, sent_move);
                     payload.push(origin_snek_id);
                     payload.push(sent_move);
                 }

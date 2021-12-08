@@ -1,16 +1,15 @@
-use std::{net::SocketAddr, time::Duration};
+use std::net::SocketAddr;
+use std::io;
+use std::io::Write;
 use std::time::Instant;
 
-use laminar::{ErrorKind, Packet, Socket, SocketEvent, Config};
-use rand::seq::SliceRandom;
+use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 use macroquad::prelude::{next_frame, get_time, clear_background, Conf, BLACK};
 use shared::{StreamId, MessageType, MAGIC_BYTE, Direction, GameResult};
 use crate::game::Game;
 
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 800;
-
-const SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
 pub fn client() {
     main();
@@ -110,22 +109,40 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() -> Result<(), ErrorKind> {
-    // Get random address because clients can't have the same address
-    let addresses = vec!["127.0.0.1:12352", "127.0.0.1:12353", "127.0.0.1:12354",  "127.0.0.1:12356", "127.0.0.1:12357", "127.0.0.1:12358"]; // vec!["192.168.1.3:12352", "192.168.1.3:12353", "192.168.1.3:12354", "192.168.1.3:12355", "192.168.1.3:12356"];
-    let mut rng = rand::thread_rng();
-    let addr = addresses.choose(&mut rng).unwrap();
+    let mut port = 8432;
+    let mut addr: String;
 
-    let mut config = Config::default();
-    config.heartbeat_interval = Some(Duration::from_millis(500));
-    config.idle_connection_timeout = Duration::from_millis(10000);
-    let mut socket = Socket::bind_with_config(addr, config)?;
-    println!("Binded to IP {}", addr);
+    let mut socket: Socket;
+    loop {
+        addr = format!("{}:{}", "127.0.0.1", port);
+        match Socket::bind(&addr) {
+            Ok(s) => {
+                socket = s;
+                break;
+            },
+            Err(_) => {
+                port += 1;
+            }
+        };
+    }
+    println!("Binded to IP {}", &addr);
+
+    let stdin = io::stdin();
+
+    print!("Sever IP:port (127.0.0.1:8080): ");
+    io::stdout().flush().unwrap();
+
+    let mut server_address_string = String::new();
+    stdin.read_line(&mut server_address_string)?;
 
     // Tell server to add the client
-    let server_address = SERVER_ADDRESS.parse::<SocketAddr>().unwrap();
+    let server_address = match server_address_string.parse::<SocketAddr>() {
+        Ok(address) => address,
+        Err(_) => "127.0.0.1:8080".parse::<SocketAddr>().unwrap()
+    };
     send_packet(MessageType::JoinEvent, vec![], server_address, StreamId::Event as u8, &mut socket);
     socket.manual_poll(Instant::now());
-    println!("Attempting to join server {} ...", SERVER_ADDRESS);
+    println!("Attempting to join server {}...", server_address);
 
     let mut game = Game::new(
         WINDOW_WIDTH,  WINDOW_HEIGHT,
