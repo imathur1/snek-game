@@ -1,0 +1,10 @@
+[package]
+name = "snek-client"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+laminar = "0.3"
+macroquad = "0.3"
+rand = "0.8.4"
+shared = { path = "../shared" }

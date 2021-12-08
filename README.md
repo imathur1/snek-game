@@ -46,6 +46,13 @@ Louis Asanaka, asanaka2
 - Handling simultaenous requests from every player in a parallelizable manner 
 - Developing the graphical interface to handle user interaction and display the current game state
 
+### Building
+- Running `cargo build` in the root project directory will suffice.
+
+### Running
+- To run the server, do `cargo run --bin snek-server`
+- To run the client, do `cargo run --bin snek-client`
+
 ### References
 Slither.io
 
