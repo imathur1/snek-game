@@ -1,11 +1,10 @@
 use core::time;
-use std::time::Duration;
 use std::{thread, time::Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use crossbeam_channel::Sender;
 use laminar::{ErrorKind, Packet, Socket, SocketEvent, Config};
-use shared::{SnekId, StreamId, MessageType, GameResult, INVALID_ID, MAGIC_BYTE, MAX_PLAYERS};
+use shared::{SnekId, MessageType, GameResult, INVALID_ID, MAGIC_BYTE, MAX_PLAYERS};
 
 struct ServerState {
     pub snek_ids: Vec<SnekId>,
@@ -43,7 +42,7 @@ impl ServerState {
     }
 }
 
-fn send_packet(message_type: MessageType, payload: Vec<u8>, address: SocketAddr, stream_id: u8, sender: &Sender<Packet>) {
+fn send_packet(message_type: MessageType, payload: Vec<u8>, address: SocketAddr, sender: &Sender<Packet>) {
     let mut actual_payload = vec![MAGIC_BYTE, message_type as u8];
     actual_payload.extend(payload.iter());
     sender.send(Packet::reliable_sequenced(address, actual_payload, Some(0))).unwrap()
@@ -76,7 +75,7 @@ fn handle_packet(packet: &Packet, sender: &Sender<Packet>, state: &mut ServerSta
 
             println!("Sending ID {} back to snek...", id);
 
-            send_packet(MessageType::AssignIdEvent, vec![id], address, StreamId::Event as u8, sender);
+            send_packet(MessageType::AssignIdEvent, vec![id], address, sender);
             if state.get_snek_count() == MAX_PLAYERS {
                 // If MAX_PLAYERS clients have joined, start the game
                 state.start_game();
@@ -85,14 +84,14 @@ fn handle_packet(packet: &Packet, sender: &Sender<Packet>, state: &mut ServerSta
 
                 // Broadcast IDs & game start event
                 for (&snek_address, _) in state.address_to_id.iter() {
-                    send_packet(MessageType::BroadcastIdsEvent, state.snek_ids.clone(), snek_address, StreamId::Event as u8, sender);
-                    send_packet(MessageType::StartEvent, vec![], snek_address, StreamId::Event as u8, sender);
+                    send_packet(MessageType::BroadcastIdsEvent, state.snek_ids.clone(), snek_address, sender);
+                    send_packet(MessageType::StartEvent, vec![], snek_address, sender);
                 }
             }
         },
         x if x == MessageType::Heartbeat as u8 => {
             // Send a heartbeat back to the client to prevent timing out
-            send_packet(MessageType::Heartbeat, vec![], address, StreamId::Heartbeat as u8, sender);
+            send_packet(MessageType::Heartbeat, vec![], address, sender);
         },
         x if x == MessageType::MoveEvent as u8 => {
             // Receive moves from both clients. Once both are received send
@@ -109,7 +108,7 @@ fn handle_packet(packet: &Packet, sender: &Sender<Packet>, state: &mut ServerSta
             // println!("updating move");
             // Only one move has been received, send heartbeat to prevent timing out
             // and to wait for the second move
-            send_packet(MessageType::Heartbeat, vec![], address, StreamId::Heartbeat as u8, sender);
+            send_packet(MessageType::Heartbeat, vec![], address, sender);
         },
         x if x == MessageType::DeathEvent as u8 => {
             println!("Death event");
@@ -122,7 +121,7 @@ fn handle_packet(packet: &Packet, sender: &Sender<Packet>, state: &mut ServerSta
                 0 => {
                     for (&snek_address, _) in state.address_to_id.iter() {
                         send_packet(MessageType::EndEvent, 
-                            vec![GameResult::Tie as u8, INVALID_ID], snek_address, StreamId::Event as u8, sender);
+                            vec![GameResult::Tie as u8, INVALID_ID], snek_address, sender);
                     }
                     state.end_game();
                 },
@@ -131,10 +130,10 @@ fn handle_packet(packet: &Packet, sender: &Sender<Packet>, state: &mut ServerSta
                     for (&snek_address, &snek_id) in state.address_to_id.iter() {
                         if snek_id == winner {
                             send_packet(MessageType::EndEvent, 
-                                vec![GameResult::Win as u8, winner], snek_address, StreamId::Event as u8, sender);
+                                vec![GameResult::Win as u8, winner], snek_address, sender);
                         } else {
                             send_packet(MessageType::EndEvent, 
-                                vec![GameResult::Loss as u8, winner], snek_address, StreamId::Event as u8, sender);
+                                vec![GameResult::Loss as u8, winner], snek_address, sender);
                         }
                     }
                     state.end_game();
@@ -191,7 +190,7 @@ pub fn server(port: i32) -> Result<(), ErrorKind> {
                     payload.push(origin_snek_id);
                     payload.push(sent_move);
                 }
-                send_packet(MessageType::MoveEvent, payload, snek_address, StreamId::Move as u8, &sender);
+                send_packet(MessageType::MoveEvent, payload, snek_address, &sender);
             }
             now = Instant::now();
         }
