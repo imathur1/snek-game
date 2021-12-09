@@ -150,32 +150,6 @@ impl Game {
         const THICKNESS: f32 = 10.0;
         draw_rectangle_lines(self.offset_x(0) as f32 - THICKNESS / 2.0, self.offset_y(0) as f32 - THICKNESS / 2.0,
             self.grid_width as f32 + THICKNESS, self.grid_height as f32 + THICKNESS, THICKNESS, GREEN);
-        // for row in 0..=self.grid_row_count {
-        //     let y = self.offset_y(row * self.grid_size) as f32;
-        //     draw_line(self.offset_x(0) as f32, y, self.offset_y(self.grid_width) as f32, y, 1.5, GREEN);
-        // }
-        // for col in 0..=self.grid_col_count {
-        //     let x = self.offset_x(col * self.grid_size) as f32;
-        //     draw_line(x, self.offset_y(0) as f32, x, self.offset_y(self.grid_height) as f32, 1.5, GREEN);
-        // }
-
-        // if let Some(snek) = self.sneks.get_mut(&self.my_snek_id) {
-        //     let snek_move;
-        //     if snek.direction == Direction::North {
-        //         snek_move = String::from("W");
-        //     } else if snek.direction == Direction::South {
-        //         snek_move = String::from("S");
-        //     } else if snek.direction == Direction::West {
-        //         snek_move = String::from("A");
-        //     } else {
-        //         snek_move = String::from("D");
-        //     }
-        //     socket.send(Packet::reliable_ordered(
-        //         *server,
-        //         snek_move.as_bytes().to_vec(),
-        //         Some(5),
-        //     )).unwrap();
-        // } 
     }
 
     pub fn get_all_snek_ids(&self) -> Vec<SnekId> {
@@ -206,10 +180,6 @@ impl Game {
     pub fn move_snek(&mut self, snek_id: SnekId, direction: Direction) {
         // Move the snek in specified direction
         if let Some(snek) = self.sneks.get_mut(&snek_id) {
-            // if !snek.has_changed_direction {
-            //     snek.has_changed_direction = true;
-            //     snek.set_direction(direction);
-            // }
             snek.set_direction(direction);
         }
     }
